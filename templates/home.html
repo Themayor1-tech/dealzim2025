@@ -1,10 +1,24 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Dealzim</title>
-</head>
-<body>
-    <h1>Welcome to Dealzim</h1>
-    <p>Community-powered marketplace. Coming soon.</p>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block title %}Dealzim - Home{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>DEALZIM</h1>
+    <p>The community-powered marketplace for Nigerian students.</p>
+    <p>Buy and sell with structure, trust, and real visibility.</p>
+    <a href="/register" class="btn btn-primary">Start Selling</a>
+    &nbsp;
+    <a href="/register" class="btn btn-secondary">Browse Deals</a>
+</div>
+
+<div class="section-title">Latest Deals</div>
+
+<div class="listings-grid">
+    <div class="card">
+        <h3>Your listings will appear here</h3>
+        <div class="price">₦0.00</div>
+        <div class="seller">Posted by @seller</div>
+        <a href="#" class="btn btn-secondary">View Deal</a>
+    </div>
+</div>
+{% endblock %}

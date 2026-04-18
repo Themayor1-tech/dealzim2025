@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard - Dealzim{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom:20px;">
+    <h2 style="color:#0F2D5E;">Welcome, @{{ user.username }}</h2>
+    <p style="color:#666; margin-top:6px;">{{ user.fullname }} · {{ user.location }}</p>
+    <p style="color:#666;">📱 {{ user.whatsapp }}</p>
+</div>
+
+<div class="section-title">Your Listings</div>
+
+<div class="listings-grid">
+    <div class="card">
+        <p style="color:#999;">You have no listings yet.</p>
+        <a href="/post" class="btn btn-primary" style="margin-top:10px;">Post Your First Deal</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}{{ listing.title }} - Dealzim{% endblock %}
+
+{% block content %}
+<div class="listing-detail">
+    <h1>{{ listing.title }}</h1>
+    <div class="price">₦{{ listing.price }}</div>
+    <div class="meta">
+        Posted by @{{ listing.seller }} · {{ listing.location }} · {{ listing.date }}
+    </div>
+    <p>{{ listing.description }}</p>
+
+    <a href="{{ whatsapp_url }}" class="whatsapp-share" target="_blank">
+        📲 Share on WhatsApp
+    </a>
+
+    <div style="margin-top:16px; font-size:12px; color:#999;">
+        Posted via Dealzim · dealzim.com/listing/{{ listing.id }}
+    </div>
+</div>
+{% endblock %}

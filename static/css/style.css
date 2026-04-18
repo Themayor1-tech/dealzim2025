@@ -1,0 +1,282 @@
+/* ── Reset & Base ── */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f7fa;
+    color: #333333;
+    min-height: 100vh;
+}
+
+/* ── Navbar ── */
+.navbar {
+    background-color: #0F2D5E;
+    padding: 14px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav-logo {
+    color: #F0A500;
+    font-size: 22px;
+    font-weight: bold;
+    text-decoration: none;
+    letter-spacing: 2px;
+}
+
+.nav-links a {
+    color: #ffffff;
+    text-decoration: none;
+    margin-left: 20px;
+    font-size: 14px;
+}
+
+.nav-links a:hover {
+    color: #F0A500;
+}
+
+/* ── Main Content ── */
+.main-content {
+    max-width: 1000px;
+    margin: 30px auto;
+    padding: 0 16px;
+}
+
+/* ── Hero Section ── */
+.hero {
+    background-color: #0F2D5E;
+    color: white;
+    padding: 50px 30px;
+    border-radius: 10px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.hero h1 {
+    font-size: 36px;
+    color: #F0A500;
+    margin-bottom: 10px;
+}
+
+.hero p {
+    font-size: 16px;
+    margin-bottom: 20px;
+    color: #ccddff;
+}
+
+.btn {
+    display: inline-block;
+    padding: 12px 28px;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-primary {
+    background-color: #F0A500;
+    color: #0F2D5E;
+}
+
+.btn-primary:hover {
+    background-color: #d4920a;
+}
+
+.btn-secondary {
+    background-color: #1A56A8;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #144490;
+}
+
+/* ── Cards ── */
+.listings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.card {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.card h3 {
+    color: #0F2D5E;
+    margin-bottom: 6px;
+}
+
+.card .price {
+    color: #F0A500;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+.card .seller {
+    font-size: 13px;
+    color: #666666;
+    margin-bottom: 10px;
+}
+
+.card a {
+    text-decoration: none;
+}
+
+/* ── Forms ── */
+.form-container {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.form-container h2 {
+    color: #0F2D5E;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cccccc;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #1A56A8;
+}
+
+.form-group textarea {
+    height: 100px;
+    resize: vertical;
+}
+
+.form-footer {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #666;
+}
+
+.form-footer a {
+    color: #1A56A8;
+    text-decoration: none;
+}
+
+/* ── Alerts ── */
+.alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+/* ── Listing Detail ── */
+.listing-detail {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.listing-detail h1 {
+    color: #0F2D5E;
+    margin-bottom: 10px;
+}
+
+.listing-detail .price {
+    font-size: 26px;
+    color: #F0A500;
+    font-weight: bold;
+    margin-bottom: 16px;
+}
+
+.listing-detail .meta {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.whatsapp-share {
+    background-color: #25D366;
+    color: white;
+    padding: 14px 24px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    display: inline-block;
+    margin-top: 16px;
+}
+
+.whatsapp-share:hover {
+    background-color: #1ebe5d;
+}
+
+/* ── Footer ── */
+.footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: 40px;
+    font-size: 13px;
+    color: #999999;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* ── Section Title ── */
+.section-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #0F2D5E;
+    margin-bottom: 16px;
+    border-left: 4px solid #F0A500;
+    padding-left: 10px;
+}
