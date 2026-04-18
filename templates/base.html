@@ -12,9 +12,14 @@
         <a href="/" class="nav-logo">DEALZIM</a>
         <div class="nav-links">
             <a href="/">Home</a>
-            <a href="/register">Register</a>
-            <a href="/login">Login</a>
-            <a href="/post">Post a Deal</a>
+            {% if current_user.is_authenticated %}
+                <a href="/post">Post a Deal</a>
+                <a href="/dashboard">@{{ current_user.username }}</a>
+                <a href="/logout">Logout</a>
+            {% else %}
+                <a href="/register">Register</a>
+                <a href="/login">Login</a>
+            {% endif %}
         </div>
     </nav>
 
