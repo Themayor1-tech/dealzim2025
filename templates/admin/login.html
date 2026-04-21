@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Admin Login - Dealzim{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2 style="color:#0F2D5E;">Admin Login</h2>
+    <p style="text-align:center; color:#999; margin-bottom:20px;">
+        Restricted access. Authorised personnel only.
+    </p>
+    <form method="POST" action="/admin/login">
+        <div class="form-group">
+            <label>Admin Username</label>
+            <input type="text" name="username" placeholder="Username" required>
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="Password" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%">
+            Login
+        </button>
+    </form>
+</div>
+{% endblock %}

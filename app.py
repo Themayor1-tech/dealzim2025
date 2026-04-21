@@ -1,8 +1,8 @@
-from flask import Flask, render_template, redirect, url_for, flash, request
+from flask import Flask, render_template, redirect, url_for, flash, request, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Listing
+from models import db, User, Listing, Admin
 from datetime import datetime
 import os
 
@@ -11,7 +11,7 @@ app.secret_key = 'dealzim-secret-key-change-later'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///dealzim.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max image size
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
@@ -28,18 +28,40 @@ login_manager.login_message_category = 'info'
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 with app.app_context():
     db.create_all()
+    # Create default admin if none exists
+    if not Admin.query.first():
+        default_admin = Admin(
+            username='admin',
+            password=generate_password_hash('dealzim2025')
+        )
+        db.session.add(default_admin)
+        db.session.commit()
 
-# ── Home ──
+# ── Admin login required decorator ──
+from functools import wraps
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            flash('Admin access required.', 'danger')
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated
+
+# ══════════════════════════════════════
+# PUBLIC ROUTES
+# ══════════════════════════════════════
+
 @app.route('/')
 def home():
-    listings = Listing.query.order_by(Listing.date_posted.desc()).all()
+    listings = Listing.query.filter_by(is_approved=True)\
+               .order_by(Listing.date_posted.desc()).all()
     return render_template('home.html', listings=listings)
 
-# ── Register ──
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -66,22 +88,24 @@ def register():
         )
         db.session.add(new_user)
         db.session.commit()
-
         flash('Account created successfully! Please login.', 'success')
         return redirect(url_for('login'))
 
     return render_template('register.html')
 
-# ── Login ──
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username').lower().strip()
         password = request.form.get('password')
-
         user = User.query.filter_by(username=username).first()
+
         if not user or not check_password_hash(user.password, password):
             flash('Incorrect username or password.', 'danger')
+            return redirect(url_for('login'))
+
+        if user.is_banned:
+            flash('Your account has been banned. Contact support.', 'danger')
             return redirect(url_for('login'))
 
         login_user(user)
@@ -90,7 +114,6 @@ def login():
 
     return render_template('login.html')
 
-# ── Logout ──
 @app.route('/logout')
 @login_required
 def logout():
@@ -98,7 +121,6 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('home'))
 
-# ── Dashboard ──
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -106,7 +128,6 @@ def dashboard():
                .order_by(Listing.date_posted.desc()).all()
     return render_template('dashboard.html', user=current_user, listings=listings)
 
-# ── Post a Listing ──
 @app.route('/post', methods=['GET', 'POST'])
 @login_required
 def post():
@@ -120,7 +141,7 @@ def post():
         file = request.files.get('image')
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            unique_filename = f"{current_user.username}_{int(datetime.utcnow().timestamp())}_{filename}"
+            unique_filename = f"{current_user.username}_{int(datetime.now().timestamp())}_{filename}"
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
             image_filename = unique_filename
 
@@ -134,18 +155,15 @@ def post():
         )
         db.session.add(new_listing)
         db.session.commit()
-
         flash('Your deal has been posted!', 'success')
         return redirect(url_for('listing', id=new_listing.id))
 
     return render_template('post.html')
 
-# ── Single Listing ──
 @app.route('/listing/<int:id>')
 def listing(id):
     item = Listing.query.get_or_404(id)
-    seller = User.query.get(item.user_id)
-
+    seller = db.session.get(User, item.user_id)
     whatsapp_url = (
         f"https://wa.me/?text="
         f"*{item.title}*%0A"
@@ -155,9 +173,9 @@ def listing(id):
         f"Posted via Dealzim%0A"
         f"👉 https://dealzim.com/listing/{item.id}"
     )
-    return render_template('listing.html', listing=item, seller=seller, whatsapp_url=whatsapp_url)
+    return render_template('listing.html', listing=item,
+                           seller=seller, whatsapp_url=whatsapp_url)
 
-# ── Delete Listing ──
 @app.route('/delete/<int:id>')
 @login_required
 def delete_listing(id):
@@ -169,6 +187,95 @@ def delete_listing(id):
     db.session.commit()
     flash('Listing deleted.', 'info')
     return redirect(url_for('dashboard'))
+
+# ══════════════════════════════════════
+# ADMIN ROUTES
+# ══════════════════════════════════════
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        admin = Admin.query.filter_by(username=username).first()
+
+        if not admin or not check_password_hash(admin.password, password):
+            flash('Incorrect admin credentials.', 'danger')
+            return redirect(url_for('admin_login'))
+
+        session['admin_logged_in'] = True
+        session['admin_username'] = admin.username
+        flash('Welcome, Admin.', 'success')
+        return redirect(url_for('admin_dashboard'))
+
+    return render_template('admin/login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    session.pop('admin_username', None)
+    flash('Admin logged out.', 'info')
+    return redirect(url_for('home'))
+
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    users = User.query.order_by(User.joined.desc()).all()
+    listings = Listing.query.order_by(Listing.date_posted.desc()).all()
+    total_users = len(users)
+    total_listings = len(listings)
+    return render_template('admin/dashboard.html',
+                           users=users,
+                           listings=listings,
+                           total_users=total_users,
+                           total_listings=total_listings)
+
+@app.route('/admin/delete-listing/<int:id>')
+@admin_required
+def admin_delete_listing(id):
+    item = Listing.query.get_or_404(id)
+    db.session.delete(item)
+    db.session.commit()
+    flash(f'Listing "{item.title}" deleted.', 'info')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/ban-user/<int:id>')
+@admin_required
+def admin_ban_user(id):
+    user = db.session.get(User, id)
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    user.is_banned = True
+    db.session.commit()
+    flash(f'User @{user.username} has been banned.', 'info')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/unban-user/<int:id>')
+@admin_required
+def admin_unban_user(id):
+    user = db.session.get(User, id)
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    user.is_banned = False
+    db.session.commit()
+    flash(f'User @{user.username} has been unbanned.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/delete-user/<int:id>')
+@admin_required
+def admin_delete_user(id):
+    user = db.session.get(User, id)
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    # Delete all their listings first
+    Listing.query.filter_by(user_id=user.id).delete()
+    db.session.delete(user)
+    db.session.commit()
+    flash(f'User @{user.username} and all their listings deleted.', 'info')
+    return redirect(url_for('admin_dashboard'))
 
 if __name__ == '__main__':
     app.run(debug=True)
