@@ -2,8 +2,9 @@ from flask import Flask, render_template, redirect, url_for, flash, request, ses
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Listing, Admin
+from models import db, User, Listing, Admin, CATEGORIES
 from datetime import datetime
+from functools import wraps
 import os
 
 app = Flask(__name__)
@@ -32,7 +33,6 @@ def load_user(user_id):
 
 with app.app_context():
     db.create_all()
-    # Create default admin if none exists
     if not Admin.query.first():
         default_admin = Admin(
             username='admin',
@@ -41,8 +41,7 @@ with app.app_context():
         db.session.add(default_admin)
         db.session.commit()
 
-# ── Admin login required decorator ──
-from functools import wraps
+# ── Admin decorator ──
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -58,9 +57,28 @@ def admin_required(f):
 
 @app.route('/')
 def home():
-    listings = Listing.query.filter_by(is_approved=True)\
-               .order_by(Listing.date_posted.desc()).all()
-    return render_template('home.html', listings=listings)
+    search = request.args.get('search', '').strip()
+    category = request.args.get('category', '').strip()
+
+    query = Listing.query.filter_by(is_approved=True)
+
+    if search:
+        query = query.filter(
+            Listing.title.ilike(f'%{search}%') |
+            Listing.description.ilike(f'%{search}%') |
+            Listing.location.ilike(f'%{search}%')
+        )
+
+    if category:
+        query = query.filter_by(category=category)
+
+    listings = query.order_by(Listing.date_posted.desc()).all()
+
+    return render_template('home.html',
+                           listings=listings,
+                           categories=CATEGORIES,
+                           search=search,
+                           selected_category=category)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -136,6 +154,7 @@ def post():
         price = request.form.get('price')
         description = request.form.get('description')
         location = request.form.get('location')
+        category = request.form.get('category', 'Other')
 
         image_filename = 'no-image.png'
         file = request.files.get('image')
@@ -150,6 +169,7 @@ def post():
             price=float(price),
             description=description,
             location=location,
+            category=category,
             image=image_filename,
             user_id=current_user.id
         )
@@ -158,23 +178,35 @@ def post():
         flash('Your deal has been posted!', 'success')
         return redirect(url_for('listing', id=new_listing.id))
 
-    return render_template('post.html')
+    return render_template('post.html', categories=CATEGORIES)
 
 @app.route('/listing/<int:id>')
 def listing(id):
     item = Listing.query.get_or_404(id)
     seller = db.session.get(User, item.user_id)
-    whatsapp_url = (
+
+    whatsapp_share_url = (
         f"https://wa.me/?text="
         f"*{item.title}*%0A"
         f"Price: ₦{item.price:,.0f}%0A"
         f"Seller: @{seller.username}%0A"
         f"Location: {item.location}%0A"
+        f"Category: {item.category}%0A"
         f"Posted via Dealzim%0A"
         f"👉 https://dealzim.com/listing/{item.id}"
     )
-    return render_template('listing.html', listing=item,
-                           seller=seller, whatsapp_url=whatsapp_url)
+
+    whatsapp_contact_url = (
+        f"https://wa.me/{seller.whatsapp.replace('+', '').replace(' ', '')}"
+        f"?text=Hi%20@{seller.username},%20I%20saw%20your%20listing%20on%20Dealzim:%20"
+        f"*{item.title}*%20(₦{item.price:,.0f}).%20Is%20it%20still%20available?"
+    )
+
+    return render_template('listing.html',
+                           listing=item,
+                           seller=seller,
+                           whatsapp_share_url=whatsapp_share_url,
+                           whatsapp_contact_url=whatsapp_contact_url)
 
 @app.route('/delete/<int:id>')
 @login_required
@@ -187,6 +219,17 @@ def delete_listing(id):
     db.session.commit()
     flash('Listing deleted.', 'info')
     return redirect(url_for('dashboard'))
+
+@app.route('/category/<category_name>')
+def category(category_name):
+    listings = Listing.query.filter_by(
+        category=category_name,
+        is_approved=True
+    ).order_by(Listing.date_posted.desc()).all()
+    return render_template('category.html',
+                           listings=listings,
+                           category_name=category_name,
+                           categories=CATEGORIES)
 
 # ══════════════════════════════════════
 # ADMIN ROUTES
@@ -222,13 +265,11 @@ def admin_logout():
 def admin_dashboard():
     users = User.query.order_by(User.joined.desc()).all()
     listings = Listing.query.order_by(Listing.date_posted.desc()).all()
-    total_users = len(users)
-    total_listings = len(listings)
     return render_template('admin/dashboard.html',
                            users=users,
                            listings=listings,
-                           total_users=total_users,
-                           total_listings=total_listings)
+                           total_users=len(users),
+                           total_listings=len(listings))
 
 @app.route('/admin/delete-listing/<int:id>')
 @admin_required
@@ -270,7 +311,6 @@ def admin_delete_user(id):
     if not user:
         flash('User not found.', 'danger')
         return redirect(url_for('admin_dashboard'))
-    # Delete all their listings first
     Listing.query.filter_by(user_id=user.id).delete()
     db.session.delete(user)
     db.session.commit()

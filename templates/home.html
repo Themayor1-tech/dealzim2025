@@ -15,7 +15,57 @@
     {% endif %}
 </div>
 
-<div class="section-title">Latest Deals</div>
+<!-- Search Bar -->
+<form method="GET" action="/" style="margin-bottom:24px;">
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <input type="text"
+               name="search"
+               value="{{ search }}"
+               placeholder="Search deals..."
+               style="flex:1; padding:10px 14px; border:1px solid #ccc;
+                      border-radius:6px; font-size:14px; min-width:180px;">
+        <select name="category"
+                style="padding:10px 14px; border:1px solid #ccc;
+                       border-radius:6px; font-size:14px;">
+            <option value="">All Categories</option>
+            {% for cat in categories %}
+                <option value="{{ cat }}"
+                    {% if cat == selected_category %}selected{% endif %}>
+                    {{ cat }}
+                </option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">Search</button>
+        {% if search or selected_category %}
+            <a href="/" class="btn btn-secondary">Clear</a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Category Pills -->
+<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px;">
+    {% for cat in categories %}
+        <a href="/category/{{ cat }}"
+           style="padding:6px 14px; border-radius:20px; font-size:13px;
+                  text-decoration:none; border:1px solid #1A56A8;
+                  color:#1A56A8; white-space:nowrap;">
+            {{ cat }}
+        </a>
+    {% endfor %}
+</div>
+
+<!-- Results Info -->
+{% if search or selected_category %}
+    <div style="margin-bottom:16px; font-size:14px; color:#666;">
+        {% if search %}Search results for "<strong>{{ search }}</strong>"{% endif %}
+        {% if selected_category %} in <strong>{{ selected_category }}</strong>{% endif %}
+        — {{ listings|length }} deal(s) found
+    </div>
+{% endif %}
+
+<div class="section-title">
+    {% if search or selected_category %}Results{% else %}Latest Deals{% endif %}
+</div>
 
 {% if listings %}
     <div class="listings-grid">
@@ -23,14 +73,21 @@
         <div class="card">
             {% if item.image != 'no-image.png' %}
                 <img src="{{ url_for('static', filename='uploads/' + item.image) }}"
-                     style="width:100%; height:180px; object-fit:cover; border-radius:6px; margin-bottom:10px;">
+                     style="width:100%; height:180px; object-fit:cover;
+                            border-radius:6px; margin-bottom:10px;">
             {% endif %}
+            <div style="display:inline-block; padding:3px 10px; border-radius:12px;
+                        background:#EEF4FB; color:#1A56A8; font-size:11px;
+                        margin-bottom:8px;">
+                {{ item.category }}
+            </div>
             <h3>{{ item.title }}</h3>
             <div class="price">₦{{ "{:,.0f}".format(item.price) }}</div>
             <div class="seller">
                 @{{ item.owner.username }} · {{ item.location }}
             </div>
-            <a href="/listing/{{ item.id }}" class="btn btn-secondary"
+            <a href="/listing/{{ item.id }}"
+               class="btn btn-secondary"
                style="margin-top:8px; display:inline-block;">
                 View Deal
             </a>
@@ -39,13 +96,21 @@
     </div>
 {% else %}
     <div class="card" style="text-align:center; padding:40px;">
-        <p style="color:#999;">No deals posted yet. Be the first!</p>
+        <p style="color:#999;">
+            {% if search or selected_category %}
+                No deals found. Try a different search.
+            {% else %}
+                No deals posted yet. Be the first!
+            {% endif %}
+        </p>
         {% if current_user.is_authenticated %}
-            <a href="/post" class="btn btn-primary" style="margin-top:12px; display:inline-block;">
+            <a href="/post" class="btn btn-primary"
+               style="margin-top:12px; display:inline-block;">
                 Post a Deal
             </a>
         {% else %}
-            <a href="/register" class="btn btn-primary" style="margin-top:12px; display:inline-block;">
+            <a href="/register" class="btn btn-primary"
+               style="margin-top:12px; display:inline-block;">
                 Get Started
             </a>
         {% endif %}

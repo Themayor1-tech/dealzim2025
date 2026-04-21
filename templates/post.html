@@ -7,25 +7,39 @@
     <form method="POST" action="/post" enctype="multipart/form-data">
         <div class="form-group">
             <label>Product Title</label>
-            <input type="text" name="title" placeholder="What are you selling?" required>
+            <input type="text" name="title"
+                   placeholder="What are you selling?" required>
+        </div>
+        <div class="form-group">
+            <label>Category</label>
+            <select name="category" required>
+                {% for cat in categories %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                {% endfor %}
+            </select>
         </div>
         <div class="form-group">
             <label>Price (₦)</label>
-            <input type="number" name="price" placeholder="e.g. 5000" required>
+            <input type="number" name="price"
+                   placeholder="e.g. 5000" required>
         </div>
         <div class="form-group">
             <label>Description</label>
-            <textarea name="description" placeholder="Describe your product..."></textarea>
+            <textarea name="description"
+                      placeholder="Describe your product — condition, size, colour, etc."
+                      required></textarea>
         </div>
         <div class="form-group">
             <label>Location</label>
-            <input type="text" name="location" placeholder="Where is the item located?">
+            <input type="text" name="location"
+                   placeholder="Where is the item located?">
         </div>
         <div class="form-group">
             <label>Product Image</label>
             <input type="file" name="image" accept="image/*">
         </div>
-        <button type="submit" class="btn btn-primary" style="width:100%">Post Deal</button>
+        <button type="submit" class="btn btn-primary"
+                style="width:100%">Post Deal</button>
     </form>
 </div>
 {% endblock %}

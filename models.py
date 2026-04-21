@@ -4,6 +4,19 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
+CATEGORIES = [
+    'Electronics',
+    'Fashion & Clothing',
+    'Food & Drinks',
+    'Books & Stationery',
+    'Services',
+    'Furniture & Home',
+    'Health & Beauty',
+    'Sports & Fitness',
+    'Vehicles & Transport',
+    'Other'
+]
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fullname = db.Column(db.String(100), nullable=False)
@@ -26,6 +39,7 @@ class Listing(db.Model):
     price = db.Column(db.Float, nullable=False)
     description = db.Column(db.Text, nullable=False)
     location = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50), default='Other')
     image = db.Column(db.String(200), default='no-image.png')
     is_approved = db.Column(db.Boolean, default=True)
     date_posted = db.Column(db.DateTime, default=datetime.utcnow)
