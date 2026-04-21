@@ -3,19 +3,39 @@
 
 {% block content %}
 <div class="listing-detail">
+
+    {% if listing.image != 'no-image.png' %}
+        <img src="{{ url_for('static', filename='uploads/' + listing.image) }}"
+             style="width:100%; max-height:320px; object-fit:cover; border-radius:8px; margin-bottom:20px;">
+    {% endif %}
+
     <h1>{{ listing.title }}</h1>
-    <div class="price">₦{{ listing.price }}</div>
+    <div class="price">₦{{ "{:,.0f}".format(listing.price) }}</div>
+
     <div class="meta">
-        Posted by @{{ listing.seller }} · {{ listing.location }} · {{ listing.date }}
+        Posted by @{{ seller.username }} &nbsp;·&nbsp;
+        {{ listing.location }} &nbsp;·&nbsp;
+        {{ listing.date_posted.strftime('%d %b %Y') }}
     </div>
-    <p>{{ listing.description }}</p>
+
+    <p style="margin: 16px 0; line-height:1.6;">{{ listing.description }}</p>
 
     <a href="{{ whatsapp_url }}" class="whatsapp-share" target="_blank">
         📲 Share on WhatsApp
     </a>
 
-    <div style="margin-top:16px; font-size:12px; color:#999;">
+    {% if current_user.is_authenticated and current_user.id == listing.user_id %}
+        <a href="/delete/{{ listing.id }}" class="btn btn-secondary"
+           style="margin-left:10px;"
+           onclick="return confirm('Delete this listing?')">
+            Delete
+        </a>
+    {% endif %}
+
+    <div style="margin-top:20px; padding:12px; background:#f5f7fa;
+                border-radius:6px; font-size:12px; color:#999;">
         Posted via Dealzim · dealzim.com/listing/{{ listing.id }}
     </div>
+
 </div>
 {% endblock %}

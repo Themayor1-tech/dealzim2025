@@ -7,7 +7,9 @@
     <p style="color:#666; margin-top:6px;">{{ user.fullname }} · {{ user.location }}</p>
     <p style="color:#666; margin-top:4px;">📱 {{ user.whatsapp }}</p>
     <p style="color:#666; margin-top:4px;">Role: {{ user.role }}</p>
-    <p style="color:#666; margin-top:4px;">Member since: {{ user.joined.strftime('%B %Y') }}</p>
+    <p style="color:#666; margin-top:4px;">
+        Member since: {{ user.joined.strftime('%B %Y') }}
+    </p>
 </div>
 
 <div style="margin-bottom:20px;">
@@ -16,14 +18,41 @@
     <a href="/logout" class="btn btn-secondary">Logout</a>
 </div>
 
-<div class="section-title">Your Listings</div>
+<div class="section-title">
+    Your Listings ({{ listings|length }})
+</div>
 
-<div class="listings-grid">
-    <div class="card">
+{% if listings %}
+    <div class="listings-grid">
+        {% for item in listings %}
+        <div class="card">
+            {% if item.image != 'no-image.png' %}
+                <img src="{{ url_for('static', filename='uploads/' + item.image) }}"
+                     style="width:100%; height:150px; object-fit:cover;
+                            border-radius:6px; margin-bottom:10px;">
+            {% endif %}
+            <h3>{{ item.title }}</h3>
+            <div class="price">₦{{ "{:,.0f}".format(item.price) }}</div>
+            <div class="seller">{{ item.location }}</div>
+            <div style="margin-top:10px;">
+                <a href="/listing/{{ item.id }}"
+                   class="btn btn-secondary">View</a>
+                &nbsp;
+                <a href="/delete/{{ item.id }}"
+                   class="btn"
+                   style="background:#e74c3c; color:white;"
+                   onclick="return confirm('Delete this listing?')">Delete</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card" style="text-align:center; padding:40px;">
         <p style="color:#999;">You have no listings yet.</p>
-        <a href="/post" class="btn btn-primary" style="margin-top:10px; display:inline-block;">
+        <a href="/post" class="btn btn-primary"
+           style="margin-top:12px; display:inline-block;">
             Post Your First Deal
         </a>
     </div>
-</div>
+{% endif %}
 {% endblock %}

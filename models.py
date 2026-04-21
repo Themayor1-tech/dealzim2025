@@ -13,6 +13,21 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(20), default='both')
     joined = db.Column(db.DateTime, default=datetime.utcnow)
+    listings = db.relationship('Listing', backref='owner', lazy=True)
 
     def __repr__(self):
         return f'<User {self.username}>'
+
+
+class Listing(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(120), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    location = db.Column(db.String(100), nullable=False)
+    image = db.Column(db.String(200), default='no-image.png')
+    date_posted = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def __repr__(self):
+        return f'<Listing {self.title}>'

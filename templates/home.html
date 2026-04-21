@@ -6,19 +6,49 @@
     <h1>DEALZIM</h1>
     <p>The community-powered marketplace for Nigerian students.</p>
     <p>Buy and sell with structure, trust, and real visibility.</p>
-    <a href="/register" class="btn btn-primary">Start Selling</a>
-    &nbsp;
-    <a href="/register" class="btn btn-secondary">Browse Deals</a>
+    {% if current_user.is_authenticated %}
+        <a href="/post" class="btn btn-primary">+ Post a Deal</a>
+    {% else %}
+        <a href="/register" class="btn btn-primary">Start Selling</a>
+        &nbsp;
+        <a href="/login" class="btn btn-secondary">Login</a>
+    {% endif %}
 </div>
 
 <div class="section-title">Latest Deals</div>
 
-<div class="listings-grid">
-    <div class="card">
-        <h3>Your listings will appear here</h3>
-        <div class="price">₦0.00</div>
-        <div class="seller">Posted by @seller</div>
-        <a href="#" class="btn btn-secondary">View Deal</a>
+{% if listings %}
+    <div class="listings-grid">
+        {% for item in listings %}
+        <div class="card">
+            {% if item.image != 'no-image.png' %}
+                <img src="{{ url_for('static', filename='uploads/' + item.image) }}"
+                     style="width:100%; height:180px; object-fit:cover; border-radius:6px; margin-bottom:10px;">
+            {% endif %}
+            <h3>{{ item.title }}</h3>
+            <div class="price">₦{{ "{:,.0f}".format(item.price) }}</div>
+            <div class="seller">
+                @{{ item.owner.username }} · {{ item.location }}
+            </div>
+            <a href="/listing/{{ item.id }}" class="btn btn-secondary"
+               style="margin-top:8px; display:inline-block;">
+                View Deal
+            </a>
+        </div>
+        {% endfor %}
     </div>
-</div>
+{% else %}
+    <div class="card" style="text-align:center; padding:40px;">
+        <p style="color:#999;">No deals posted yet. Be the first!</p>
+        {% if current_user.is_authenticated %}
+            <a href="/post" class="btn btn-primary" style="margin-top:12px; display:inline-block;">
+                Post a Deal
+            </a>
+        {% else %}
+            <a href="/register" class="btn btn-primary" style="margin-top:12px; display:inline-block;">
+                Get Started
+            </a>
+        {% endif %}
+    </div>
+{% endif %}
 {% endblock %}
