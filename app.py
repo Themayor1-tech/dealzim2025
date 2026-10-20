@@ -9,7 +9,9 @@ import os
 
 app = Flask(__name__)
 app.secret_key = 'dealzim-secret-key-change-later'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///dealzim.db'
+import os
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///dealzim.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
