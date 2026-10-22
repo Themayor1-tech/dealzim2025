@@ -318,6 +318,62 @@ def admin_delete_user(id):
     db.session.commit()
     flash(f'User @{user.username} and all their listings deleted.', 'info')
     return redirect(url_for('admin_dashboard'))
+# ══════════════════════════════════════
+# WHATSAPP CONTACT KEY
+# ══════════════════════════════════════
+
+@app.route('/download-contacts')
+@login_required
+def download_contacts():
+    from flask import Response
+    from datetime import datetime
+
+    # Time window: 6AM to 4PM
+    now = datetime.now()
+    window_start = now.replace(hour=6, minute=0, second=0)
+    window_end = now.replace(hour=16, minute=0, second=0)
+
+    if not (window_start <= now <= window_end):
+        flash('Contact downloads are only available between 6:00 AM and 4:00 PM daily.', 'info')
+        return redirect(url_for('dashboard'))
+
+    # Get all users except the current user
+    users = User.query.filter(
+        User.id != current_user.id,
+        User.is_banned == False
+    ).all()
+
+    if not users:
+        flash('No contacts available to download yet.', 'info')
+        return redirect(url_for('dashboard'))
+
+    # Build the .vcf file
+    vcf_lines = []
+    for user in users:
+        # Clean the WhatsApp number
+        number = user.whatsapp.strip().replace(' ', '').replace('-', '')
+        if not number.startswith('+'):
+            number = '+' + number
+
+        # Format contact name
+        contact_name = f"{user.fullname} ({user.location}) - Dealzim"
+
+        vcf_lines.append("BEGIN:VCARD")
+        vcf_lines.append("VERSION:3.0")
+        vcf_lines.append(f"FN:{contact_name}")
+        vcf_lines.append(f"TEL;TYPE=CELL:{number}")
+        vcf_lines.append("END:VCARD")
+        vcf_lines.append("")
+
+    vcf_content = "\n".join(vcf_lines)
+
+    return Response(
+        vcf_content,
+        mimetype='text/vcard',
+        headers={
+            'Content-Disposition': 'attachment; filename=dealzim-contacts.vcf'
+        }
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)
