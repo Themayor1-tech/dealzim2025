@@ -135,31 +135,35 @@ def register():
         token = serializer.dumps(email, salt='email-verify')
         verify_url = url_for('verify_email', token=token, _external=True)
 
+        # Always redirect immediately — never let email sending block the page
         try:
             msg = Message(
                 subject='Verify your Dealzim account',
                 recipients=[email]
             )
-            msg.body = f"""
-Hi {fullname},
+            msg.body = f"""Hi {fullname},
 
 Welcome to Dealzim!
 
-Please verify your email address by clicking the link below.
+Click the link below to verify your email.
 This link expires in 6 hours.
 
 {verify_url}
 
-If you did not create a Dealzim account, ignore this email.
+If you did not create this account, ignore this email.
 
 — The Dealzim Team
             """
             mail.send(msg)
             flash('Account created! Check your email to verify your account.', 'success')
         except Exception:
-            flash('Account created but email could not be sent. Contact support.', 'info')
-
-        return redirect(url_for('login'))
+            flash(
+                'Account created! We could not send your verification email. '
+                'Use the Resend Verification option after logging in.',
+                'info'
+            )
+        finally:
+            return redirect(url_for('login'))
 
     return render_template('register.html')
 
