@@ -193,11 +193,15 @@ def verify_email(token):
     flash('Email verified successfully! You can now post listings.', 'success')
     return redirect(url_for('login'))
 
-
 @app.route('/resend-verification', methods=['GET', 'POST'])
 def resend_verification():
     if request.method == 'POST':
-        email = request.form.get('email').lower().strip()
+        email = request.form.get('email', '').lower().strip()
+
+        if not email:
+            flash('Please enter your email address.', 'danger')
+            return redirect(url_for('resend_verification'))
+
         user = User.query.filter_by(email=email).first()
 
         if not user:
@@ -216,8 +220,7 @@ def resend_verification():
                 subject='Verify your Dealzim account',
                 recipients=[email]
             )
-            msg.body = f"""
-Hi {user.fullname},
+            msg.body = f"""Hi {user.fullname},
 
 Here is your new Dealzim verification link.
 This link expires in 6 hours.
@@ -227,13 +230,51 @@ This link expires in 6 hours.
 — The Dealzim Team
             """
             mail.send(msg)
-            flash('Verification email resent. Check your inbox.', 'success')
+            flash('Verification email sent. Check your inbox.', 'success')
         except Exception:
             flash('Could not send email. Try again later.', 'danger')
-
-        return redirect(url_for('login'))
+        finally:
+            return redirect(url_for('login'))
 
     return render_template('resend_verification.html')
+
+@app.route('/send-my-verification')
+@login_required
+def send_my_verification():
+    if current_user.is_verified:
+        flash('Your email is already verified.', 'info')
+        return redirect(url_for('dashboard'))
+
+    email = current_user.email
+    token = serializer.dumps(email, salt='email-verify')
+    verify_url = url_for('verify_email', token=token, _external=True)
+
+    try:
+        msg = Message(
+            subject='Verify your Dealzim account',
+            recipients=[email]
+        )
+        msg.body = f"""Hi {current_user.fullname},
+
+Click the link below to verify your Dealzim account.
+This link expires in 6 hours.
+
+{verify_url}
+
+— The Dealzim Team
+        """
+        mail.send(msg)
+        flash(
+            f'Verification email sent to {email}. Check your inbox.',
+            'success'
+        )
+    except Exception:
+        flash(
+            'Could not send email right now. Try again in a few minutes.',
+            'danger'
+        )
+    finally:
+        return redirect(url_for('dashboard'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -277,7 +318,7 @@ def dashboard():
 def post():
     if not current_user.is_verified:
         flash('Please verify your email before posting listings.', 'danger')
-        return redirect(url_for('resend_verification'))
+        return redirect(url_for('send_my_verification'))
     if request.method == 'POST':
         title = request.form.get('title')
         price = request.form.get('price')

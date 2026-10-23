@@ -17,6 +17,27 @@
     &nbsp;
     <a href="/logout" class="btn btn-secondary">Logout</a>
 </div>
+{% if not user.is_verified %}
+<div class="card" style="margin-bottom:20px; border-left:4px solid #e74c3c;">
+    <h3 style="color:#e74c3c; margin-bottom:6px;">⚠ Email Not Verified</h3>
+    <p style="color:#666; font-size:13px; margin-bottom:12px;">
+        Your email is not verified yet. You cannot post listings until
+        you verify your email address.
+        We will send the link to <strong>{{ user.email }}</strong>.
+    </p>
+    <a href="/send-my-verification"
+       class="btn"
+       style="background:#e74c3c; color:white;">
+        Send Verification Link
+    </a>
+</div>
+{% else %}
+<div class="card" style="margin-bottom:20px; border-left:4px solid #27ae60;">
+    <p style="color:#27ae60; font-size:13px;">
+        ✅ Email verified — you can post listings.
+    </p>
+</div>
+{% endif %}
 
 <!-- WhatsApp Contact Key -->
 <div class="card" style="margin-bottom:24px; border-left:4px solid #25D366;">
