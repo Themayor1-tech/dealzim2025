@@ -1,25 +1,40 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, session
+from flask import Flask, render_template, redirect, url_for, flash, request, session, Response
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from models import db, User, Listing, Admin, CATEGORIES
 from datetime import datetime
 from functools import wraps
-import os
+from dotenv import load_dotenv
+load_dotenv()
+import os 
 
 app = Flask(__name__)
 app.secret_key = 'dealzim-secret-key-change-later'
-import os
-
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///dealzim.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+    'DATABASE_URL', 'sqlite:///dealzim.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
 
+# ── Email config ──
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME')
+
+mail = Mail(app)
+serializer = URLSafeTimedSerializer(app.secret_key)
+
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 db.init_app(app)
 
@@ -91,16 +106,23 @@ def register():
         location = request.form.get('location')
         password = request.form.get('password')
         role = request.form.get('role')
+        email = request.form.get('email').lower().strip()
 
         existing_user = User.query.filter_by(username=username).first()
         if existing_user:
-            flash('That username is already taken. Choose another.', 'danger')
+            flash('That username is already taken.', 'danger')
+            return redirect(url_for('register'))
+
+        existing_email = User.query.filter_by(email=email).first()
+        if existing_email:
+            flash('That email is already registered.', 'danger')
             return redirect(url_for('register'))
 
         hashed_password = generate_password_hash(password)
         new_user = User(
             fullname=fullname,
             username=username,
+            email=email,
             whatsapp=whatsapp,
             location=location,
             password=hashed_password,
@@ -108,10 +130,106 @@ def register():
         )
         db.session.add(new_user)
         db.session.commit()
-        flash('Account created successfully! Please login.', 'success')
+
+        # Send verification email
+        token = serializer.dumps(email, salt='email-verify')
+        verify_url = url_for('verify_email', token=token, _external=True)
+
+        try:
+            msg = Message(
+                subject='Verify your Dealzim account',
+                recipients=[email]
+            )
+            msg.body = f"""
+Hi {fullname},
+
+Welcome to Dealzim!
+
+Please verify your email address by clicking the link below.
+This link expires in 6 hours.
+
+{verify_url}
+
+If you did not create a Dealzim account, ignore this email.
+
+— The Dealzim Team
+            """
+            mail.send(msg)
+            flash('Account created! Check your email to verify your account.', 'success')
+        except Exception:
+            flash('Account created but email could not be sent. Contact support.', 'info')
+
         return redirect(url_for('login'))
 
     return render_template('register.html')
+
+
+@app.route('/verify/<token>')
+def verify_email(token):
+    try:
+        email = serializer.loads(token, salt='email-verify', max_age=21600)
+    except SignatureExpired:
+        flash('Your verification link has expired. Please request a new one.', 'danger')
+        return redirect(url_for('resend_verification'))
+    except BadSignature:
+        flash('Invalid verification link.', 'danger')
+        return redirect(url_for('login'))
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('register'))
+
+    if user.is_verified:
+        flash('Your email is already verified. Please login.', 'info')
+        return redirect(url_for('login'))
+
+    user.is_verified = True
+    db.session.commit()
+    flash('Email verified successfully! You can now post listings.', 'success')
+    return redirect(url_for('login'))
+
+
+@app.route('/resend-verification', methods=['GET', 'POST'])
+def resend_verification():
+    if request.method == 'POST':
+        email = request.form.get('email').lower().strip()
+        user = User.query.filter_by(email=email).first()
+
+        if not user:
+            flash('No account found with that email.', 'danger')
+            return redirect(url_for('resend_verification'))
+
+        if user.is_verified:
+            flash('This account is already verified.', 'info')
+            return redirect(url_for('login'))
+
+        token = serializer.dumps(email, salt='email-verify')
+        verify_url = url_for('verify_email', token=token, _external=True)
+
+        try:
+            msg = Message(
+                subject='Verify your Dealzim account',
+                recipients=[email]
+            )
+            msg.body = f"""
+Hi {user.fullname},
+
+Here is your new Dealzim verification link.
+This link expires in 6 hours.
+
+{verify_url}
+
+— The Dealzim Team
+            """
+            mail.send(msg)
+            flash('Verification email resent. Check your inbox.', 'success')
+        except Exception:
+            flash('Could not send email. Try again later.', 'danger')
+
+        return redirect(url_for('login'))
+
+    return render_template('resend_verification.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -119,6 +237,8 @@ def login():
         username = request.form.get('username').lower().strip()
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
+        if not user:
+            user = User.query.filter_by(email=username).first()
 
         if not user or not check_password_hash(user.password, password):
             flash('Incorrect username or password.', 'danger')
@@ -151,6 +271,9 @@ def dashboard():
 @app.route('/post', methods=['GET', 'POST'])
 @login_required
 def post():
+    if not current_user.is_verified:
+        flash('Please verify your email before posting listings.', 'danger')
+        return redirect(url_for('resend_verification'))
     if request.method == 'POST':
         title = request.form.get('title')
         price = request.form.get('price')

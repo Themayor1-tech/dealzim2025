@@ -21,11 +21,13 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fullname = db.Column(db.String(100), nullable=False)
     username = db.Column(db.String(50), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
     whatsapp = db.Column(db.String(20), nullable=False)
     location = db.Column(db.String(100), nullable=False)
     password = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(20), default='both')
     is_banned = db.Column(db.Boolean, default=False)
+    is_verified = db.Column(db.Boolean, default=False)
     joined = db.Column(db.DateTime, default=datetime.utcnow)
     listings = db.relationship('Listing', backref='owner', lazy=True)
 
